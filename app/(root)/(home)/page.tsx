@@ -20,10 +20,10 @@ const questions = [
       name: 'John Doe',
       picture: 'url/to/picture.jpg'
     },
-    upvotes: 10,
-    views: 100,
+    upvotes: 1050,
+    views: 100000000,
     answers: [],
-    createdAt: new Date('2024-09-01T12:00:00.000Z')
+    createdAt: new Date('2024-01-04T12:00:00.000Z')
   },
   {
     _id: "2",
@@ -37,10 +37,10 @@ const questions = [
       name: 'Jane Doe',
       picture: 'url/to/picture.jpg'
     },
-    upvotes: 20,
-    views: 200,
+    upvotes: 205353332,
+    views: 200355,
     answers: [],
-    createdAt: new Date('2024-09-01T12:00:00.000Z')
+    createdAt: new Date('2024-04-01T12:00:00.000Z')
   }
 ];
 
@@ -57,7 +57,7 @@ export default function Home() {
           </Button>
         </Link>
       </div>
-
+      
       <div className="mt-11 flex justify-between gap-5 max-sm:flex-col sm:items-center">
         <LocalSearch 
         route="/"
