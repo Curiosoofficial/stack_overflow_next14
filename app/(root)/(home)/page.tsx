@@ -1,9 +1,40 @@
 import HomeFilters from "@/components/home/HomeFilters";
 import Filter from "@/components/shared/Filter";
+import NoResult from "@/components/shared/NoResult";
 import LocalSearch from "@/components/shared/search/LocalSearch";
 import { Button } from "@/components/ui/button";
 import { HomePageFilters } from "@/constants/filters";
 import Link from "next/link";
+
+const questions = [
+  {
+    _id: 1,
+    title: 'How do ES6 module exports and imports work in JavaScript?',
+    tags: [
+      { _id: 1, name: 'javascript'},
+      {_id: 2, name: 'react'},
+    ],
+    author: 'John Doe',
+    upvotes: 10,
+    views: 100,
+    answers: 2,
+    createdAt: '2024-09-01T12:00:00.000Z'
+  },
+
+  {
+    _id: 2,
+    title: 'How to center divs?',
+    tags: [
+      { _id: 1, name: 'css'},
+      {_id: 2, name: 'html'},
+    ],
+    author: 'John Doe',
+    upvotes: 10,
+    views: 100,
+    answers: 2,
+    createdAt: '2024-09-01T12:00:00.000Z'
+  }
+]
 
 export default function Home() {
   return (
@@ -35,6 +66,21 @@ export default function Home() {
       </div>
 
       <HomeFilters />
+
+      <div className="mt-10 flex w-full flex-col gap-6">
+        {questions.length > 0 ?
+        questions.map((question) => (
+          'QuestionCard'
+        ))
+        : <NoResult
+            title="There's no question to show"
+            description="Be the first to break the silence! 🚀 Ask a Question and kickstart the discussion. our query could be the next big thing others learn from. Get involved! 💡"
+            link="/ask-question"
+            linkTitle="Ask a Question"
+          />}
+      </div>
     </>
   )
 }
+
+// 13.00
