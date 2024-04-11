@@ -3,8 +3,28 @@
 import Tag from "@/database/tag.model";
 import Question from "@/database/question.model";
 import { connectToDatabase } from "../mongoose"
+import { CreateQuestionParams, GetQuestionsParams } from "./shared.types";
+import User from "@/database/user.model";
+import { revalidatePath } from "next/cache";
 
-export async function createQuestion(params: any) {
+
+export async function getQuestions(params: GetQuestionsParams) {
+    try {
+        connectToDatabase();
+
+        const questions = await Question.find({})
+            .populate({ path: 'tags', model: Tag })
+            .populate({ path: 'author', model: User})
+
+        return { questions }
+    } catch (error) {
+        console.log(error)
+        throw error
+    }
+}
+
+
+export async function createQuestion(params: CreateQuestionParams) {
     
     try {
         connectToDatabase()
@@ -21,8 +41,7 @@ export async function createQuestion(params: any) {
         
         const tagDocuments = [];
     
-        // create the tags or get them if they already exist
-
+        
         for ( const tag of tags) {
             const existingTag = await Tag.findOneAndUpdate(
                 { name: {$regex: new RegExp(`^${tag}$`, "i")}},
@@ -37,9 +56,8 @@ export async function createQuestion(params: any) {
             $push: { tags: { $each: tagDocuments }}
         });
 
-        // cretae an interaction record for the users ask_question action
-
-        // Increment authors reputation by +5 for creating a question
+        revalidatePath(path)
+        console.log(path)
     } catch (error) {
         
     }

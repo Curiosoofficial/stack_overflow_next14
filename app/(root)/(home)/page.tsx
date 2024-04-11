@@ -5,47 +5,16 @@ import NoResult from "@/components/shared/NoResult";
 import LocalSearch from "@/components/shared/search/LocalSearch";
 import { Button } from "@/components/ui/button";
 import { HomePageFilters } from "@/constants/filters";
+import { getQuestions } from "@/lib/actions/question.action";
 import Link from "next/link";
 
-const questions = [
-  {
-    _id: "1",
-    title: 'How do ES6 module exports and imports work in JavaScript?',
-    tags: [
-      { _id: "1", name: 'javascript'},
-      { _id: "2", name: 'react'},
-    ],
-    author: {
-      _id: "1",
-      name: 'John Doe',
-      picture: 'url/to/picture.jpg'
-    },
-    upvotes: 1050,
-    views: 100000000,
-    answers: [],
-    createdAt: new Date('2024-01-04T12:00:00.000Z')
-  },
-  {
-    _id: "2",
-    title: 'How to center divs?',
-    tags: [
-      { _id: "3", name: 'css'},
-      { _id: "4", name: 'html'},
-    ],
-    author: {
-      _id: "2",
-      name: 'Jane Doe',
-      picture: 'url/to/picture.jpg'
-    },
-    upvotes: 205353332,
-    views: 200355,
-    answers: [],
-    createdAt: new Date('2024-04-01T12:00:00.000Z')
-  }
-];
 
 
-export default function Home() {
+
+export default async function Home() {
+  const result = await getQuestions({});
+  
+
   return (
     <>
       <div className="flex w-full flex-col-reverse justify-between gap-4 sm:flex-row sm:items-center">
@@ -77,8 +46,8 @@ export default function Home() {
       <HomeFilters />
 
       <div className="mt-10 flex w-full flex-col gap-6">
-        {questions.length > 0 ?
-        questions.map((question) => (
+        {result.questions.length > 0 ?
+        result.questions.map((question) => (
           <QuestionCard 
             key={question._id}
             _id={question._id}
