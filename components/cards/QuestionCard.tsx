@@ -79,7 +79,7 @@ const QuestionCard = ({
           imgUrl="/assets/icons/message.svg"
           alt="Upvotes"
           value={formatBigNumber(answers.length)}
-          title=" answers"
+          title=" Answers"
           textStyles="small-medium text-dark400_light800"
         />
 
