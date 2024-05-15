@@ -1,7 +1,9 @@
 "use client";
+import { downvoteQuestion, upvoteQuestion } from "@/lib/actions/question.action";
 import { formatBigNumber } from "@/lib/utils";
 import Image from "next/image";
-import { format } from "path";
+import { usePathname } from "next/navigation";
+import { useRouter } from "next/router";
 import React from "react";
 
 interface Props {
@@ -25,9 +27,58 @@ const Votes = ({
   hasDownvoted,
   hasSaved,
 }: Props) => {
+  const pathname = usePathname();
+  // const router = useRouter();
+
   const handleSave = async () => {};
 
-  const handleVote = async (action: string) => {};
+  const handleVote = async (action: string) => {
+    if(!userId) {
+      return;
+    }
+
+    if(action === 'upvote') {
+      if(type === 'Question') {
+        await upvoteQuestion({
+          questionId: JSON.parse(itemId),
+          userId: JSON.parse(userId),
+          hasUpvoted,
+          hasDownvoted,
+          path: pathname,
+        })
+      } else if(type === 'Answer') {
+        // await upvoteAnswer({
+        //   questionId: JSON.parse(itemId),
+        //   userId: JSON.parse(userId),
+        //   hasUpvoted,
+        //   hasDownvoted,
+        //   path: pathname,
+        // })
+      }
+      // return;
+    }
+
+    if(action === 'downvote') {
+      if(type === 'Question') {
+        await downvoteQuestion({
+          questionId: JSON.parse(itemId),
+          userId: JSON.parse(userId),
+          hasUpvoted,
+          hasDownvoted,
+          path: pathname,
+        })
+      } else if(type === 'Answer') {
+        // await downvoteAnswer({
+        //   questionId: JSON.parse(itemId),
+        //   userId: JSON.parse(userId),
+        //   hasUpvoted,
+        //   hasDownvoted,
+        //   path: pathname,
+        // })
+      }
+      // return;
+    }
+  };
 
   return (
     <div className="flex gap-5">
