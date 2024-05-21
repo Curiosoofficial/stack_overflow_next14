@@ -1,5 +1,6 @@
 "use client";
 import { downvoteAnswer, upvoteAnswer } from "@/lib/actions/answer.action";
+import { viewQuestion } from "@/lib/actions/interaction.action";
 import {
   downvoteQuestion,
   upvoteQuestion,
@@ -9,7 +10,8 @@ import { formatBigNumber } from "@/lib/utils";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/router";
-import React from "react";
+import { it } from "node:test";
+import React, { useEffect } from "react";
 
 interface Props {
   type: string;
@@ -90,6 +92,15 @@ const Votes = ({
       // return;
     }
   };
+
+  useEffect(() => {
+    viewQuestion({
+      questionId: JSON.parse(itemId),
+      userId: userId ? JSON.parse(userId) : undefined,
+    })
+
+    alert("Viewed");
+  }, [itemId, userId, pathname,])
 
   return (
     <div className="flex gap-5">
