@@ -52,6 +52,15 @@ export const formatBigNumber = (number: number): string => {
   }
 };
 
+export const getJoinedDate = (date: Date): string => {
+  const month = date.toLocaleString('default', { month: 'long' });
+  const year = date.getFullYear();
+
+  const joinedDate = `Joined ${month} ${year}`;
+
+  return joinedDate;
+}
+
 
 
 
