@@ -99,7 +99,7 @@ const Votes = ({
       userId: userId ? JSON.parse(userId) : undefined,
     })
 
-    alert("Viewed");
+    
   }, [itemId, userId, pathname,])
 
   return (
