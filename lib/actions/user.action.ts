@@ -18,7 +18,6 @@ import { FilterQuery } from "mongoose";
 import Tag from "@/database/tag.model";
 import Answer from "@/database/answer.model";
 import { BadgeCriteriaType } from "@/types";
-import { count } from "console";
 import { assignBagdes } from "../utils";
 
 export async function getUserById(params: any) {
