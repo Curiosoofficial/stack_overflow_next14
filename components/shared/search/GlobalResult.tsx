@@ -5,6 +5,8 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import GlobalFilters from "./GlobalFilters";
+import { globalSearch } from "@/lib/actions/general.action";
+import { set } from "mongoose";
 
 const GlobalResult = () => {
   const searchParams = useSearchParams();
@@ -26,7 +28,9 @@ const GlobalResult = () => {
       setIsLoading(true);
 
       try {
-        // Fetch data
+        const res = await globalSearch({ query: global, type });
+
+        setResult(JSON.parse(res));
       } catch (error) {
         console.log(error);
         throw error;
@@ -34,15 +38,31 @@ const GlobalResult = () => {
         setIsLoading(false);
       }
     };
+
+    if (global) {
+      fetchResult();
+    }
   }, [global, type]);
 
   const renderLink = (type: string, id: string) => {
-    return "/";
+    switch (type) {
+      case "question":
+        return `/question/${id}`;
+      case "answer":
+        return `/question/${id}`;
+      case "user":
+        return `/profile/${id}`;
+      case "tag":
+        return `/tags/${id}`;
+
+      default:
+        return "/";
+    }
   };
 
   return (
     <div className="absolute top-full z-10 mt-3 w-full rounded-xl bg-light-800 py-5 shadow-sm dark:bg-dark-400">
-      <GlobalFilters/>
+      <GlobalFilters />
       <div className="my-5 h-px bg-light-700/50 dark:bg-dark-500/50" />
 
       <div className="space-y-5">
@@ -62,7 +82,7 @@ const GlobalResult = () => {
             {result.length > 0 ? (
               result.map((item: any, index: number) => (
                 <Link
-                  href={renderLink("type", "id")}
+                  href={renderLink(item.type, item.id)}
                   key={item.type + item.id + index}
                   className="flex w-full cursor-pointer items-start gap-3 px-5 py-2.5 hover:bg-light-700/50 hover:dark:bg-dark-500/50"
                 >
@@ -74,8 +94,12 @@ const GlobalResult = () => {
                     className="invert-colors mt-1 object-contain"
                   />
                   <div className="flex flex-col">
-                    <p className="body-medium text-dark200_light800 line-clamp-1">{item.title}</p>
-                    <p className="text-light400_light500 small-medium mt-1 font-bold capitalize">{item.type}</p>
+                    <p className="body-medium text-dark200_light800 line-clamp-1">
+                      {item.title}
+                    </p>
+                    <p className="text-light400_light500 small-medium mt-1 font-bold capitalize">
+                      {item.type}
+                    </p>
                   </div>
                 </Link>
               ))
