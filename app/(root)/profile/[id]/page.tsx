@@ -13,10 +13,13 @@ import QuestionsTab from "@/components/shared/QuestionsTab";
 import AnswersTab from "@/components/shared/AnswersTab";
 
 
+
 const Page = async ({ params, searchParams }: URLProps) => {
   const { userId: clerkId } = auth();
 
   const userInfo = await getUserInfo({ userId: params.id });
+
+  
 
   return (
     <>
