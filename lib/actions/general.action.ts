@@ -6,7 +6,7 @@ import User from "@/database/user.model";
 import Question from "@/database/question.model";
 import Answer from "@/database/answer.model";
 import Tag from "@/database/tag.model";
-import { model } from "mongoose";
+
 
 const SearchableTypes = ["question", "user", "answer", "tag"];
 

@@ -27,7 +27,7 @@ interface Props {
 const Answer = ({ question, questionId, authorId }: Props) => {
   const pathname = usePathname();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmittingAI, setIsSubmittingAI] = useState(false);
+  // const [isSubmittingAI, setIsSubmittingAI] = useState(false);
   const { mode } = useTheme();
   const editorRef = useRef(null);
 
@@ -66,18 +66,18 @@ const Answer = ({ question, questionId, authorId }: Props) => {
   const generateAIAnswer = async () => {
     if (!authorId) return;
 
-    setIsSubmittingAI(true);
+    // setIsSubmittingAI(true);
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_SERVER_URL}/api/chatgpt`,
-        {
-          method: "POST",
-          body: JSON.stringify({ question }),
-        }
-      );
+      // const response = await fetch(
+      //   `${process.env.NEXT_PUBLIC_SERVER_URL}/api/chatgpt`,
+      //   {
+      //     method: "POST",
+      //     body: JSON.stringify({ question }),
+      //   }
+      // );
 
-      const aiAnswer = await response.json();
+      // const aiAnswer = await response.json();
 
       // alert(aiAnswer.reply);
       alert("CHECK MY CODE. I RAN OUT OF FREE REQUESTS ON OPENAI.");
@@ -85,7 +85,7 @@ const Answer = ({ question, questionId, authorId }: Props) => {
       console.log(error);
       throw error;
     } finally {
-      setIsSubmittingAI(false);
+      // setIsSubmittingAI(false);
     }
   };
 

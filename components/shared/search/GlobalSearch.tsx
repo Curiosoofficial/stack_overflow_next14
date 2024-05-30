@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { formUrlQuery, removeKeysFromQuery } from "@/lib/utils"
 import GlobalResult from "./GlobalResult"
-import { set } from "mongoose"
+
 
 
 
@@ -23,6 +23,7 @@ const GlobalSearch = () => {
 
   useEffect(() => {
     const handleOutsideClick = (event: any) => {
+      // @ts-ignore
       if(searchContainerRef.current && !searchContainerRef.current.contains(event.target)) {
         setIsOpen(false);
         setSearch("");

@@ -6,7 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import GlobalFilters from "./GlobalFilters";
 import { globalSearch } from "@/lib/actions/general.action";
-import { set } from "mongoose";
+
 
 const GlobalResult = () => {
   const searchParams = useSearchParams();

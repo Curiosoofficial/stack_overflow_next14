@@ -12,7 +12,7 @@ import Image from "next/image";
 import Link from "next/link";
 import React from "react";
 
-const page = async ({ params, searchParams }) => {
+const page = async ({ params, searchParams }: any) => {
   const result = await getQuestionById({ questionId: params.id });
 
   const { userId: clerkId } = auth()
@@ -91,7 +91,7 @@ const page = async ({ params, searchParams }) => {
       <ParseHTML data={result.content} />
 
       <div className="mt-8 flex flex-wrap gap-2">
-        {result.tags.map((tag) => (
+        {result.tags.map((tag: any) => (
           <RenderTag key={tag._id} _id={tag._id} name={tag.name} showCount={false} />
         ))}
       </div>

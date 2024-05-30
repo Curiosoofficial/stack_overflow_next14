@@ -17,7 +17,7 @@ import { revalidatePath } from "next/cache";
 import Answer from "@/database/answer.model";
 import Interaction from "@/database/interaction.model";
 import { FilterQuery } from "mongoose";
-import { auth } from "@clerk/nextjs";
+
 
 export async function getQuestions(params: GetQuestionsParams) {
   try {
@@ -306,6 +306,7 @@ export async function getRecommendedQuestions(params: RecommendedParams) {
     }, []);
 
     const distinctUserTagIds = [
+      // @ts-ignore
       ...new Set(userTags.map((tag: any) => tag._id)),
     ];
 
