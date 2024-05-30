@@ -6,18 +6,47 @@ import Pagination from "@/components/shared/Pagination";
 import LocalSearch from "@/components/shared/search/LocalSearch";
 import { Button } from "@/components/ui/button";
 import { HomePageFilters } from "@/constants/filters";
-import { getQuestions } from "@/lib/actions/question.action";
+import { getQuestions, getRecommendedQuestions } from "@/lib/actions/question.action";
 import { SearchParamsProps } from "@/types";
+import { auth } from "@clerk/nextjs";
+import { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: 'Home | Dev Overflow',
+  description: 'A community-driven platform for asking and answering programing questions. Get help, share knowlegde, and collaborate with developers from around the world. Explore topics in web development, mobile app development, algorithms, data structures, and more.',
+  icons: {
+    icon: '/assets/images/site-logo.svg'
+  }
+}
+
 
 
 export default async function Home({ searchParams }: SearchParamsProps) {
-  const result = await getQuestions({
-    searchQuery: searchParams.q,
-    filter: searchParams.filter,
-    page: searchParams.page ? +searchParams.page : 1,
-  });
+  const { userId } = auth()
+  let result;
 
+  if(searchParams?.filter === 'recommended') {
+    if(userId) {
+      result = await getRecommendedQuestions({
+        userId,
+        searchQuery: searchParams.q,
+        
+        page: searchParams.page ? +searchParams.page : 1,
+      });
+    } else {
+      result = {
+        questions: [],
+        isNext: false
+      }
+    }
+  } else {
+    result = await getQuestions({
+      searchQuery: searchParams.q,
+      filter: searchParams.filter,
+      page: searchParams.page ? +searchParams.page : 1,
+    });
+  }
   
 
   return (

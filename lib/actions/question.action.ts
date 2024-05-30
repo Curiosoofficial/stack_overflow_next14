@@ -10,18 +10,20 @@ import {
   GetQuestionByIdParams,
   GetQuestionsParams,
   QuestionVoteParams,
+  RecommendedParams,
 } from "./shared.types";
 import User from "@/database/user.model";
 import { revalidatePath } from "next/cache";
 import Answer from "@/database/answer.model";
 import Interaction from "@/database/interaction.model";
 import { FilterQuery } from "mongoose";
+import { auth } from "@clerk/nextjs";
 
 export async function getQuestions(params: GetQuestionsParams) {
   try {
     connectToDatabase();
 
-    const { searchQuery, filter, page = 1, pageSize = 20 } = params;
+    const { searchQuery, filter, page = 1, pageSize = 10 } = params;
 
     const skipAmount = (page - 1) * pageSize;
 
@@ -57,8 +59,8 @@ export async function getQuestions(params: GetQuestionsParams) {
       .limit(pageSize)
       .sort(sortOptions);
 
-      const totalQuestions = await Question.countDocuments(query);
-      const isNext = totalQuestions > skipAmount + questions.length;
+    const totalQuestions = await Question.countDocuments(query);
+    const isNext = totalQuestions > skipAmount + questions.length;
 
     return { questions, isNext };
   } catch (error) {
@@ -101,7 +103,7 @@ export async function createQuestion(params: CreateQuestionParams) {
       action: "ask_question",
       question: question._id,
       tags: tagDocuments,
-    })
+    });
 
     await User.findByIdAndUpdate(author, { $inc: { reputation: 5 } });
 
@@ -161,12 +163,12 @@ export async function upvoteQuestion(params: QuestionVoteParams) {
       throw new Error("Question not found");
     }
 
-    await User.findByIdAndUpdate(userId, { 
-      $inc: { reputation: hasUpvoted ? -1 : 1 } 
+    await User.findByIdAndUpdate(userId, {
+      $inc: { reputation: hasUpvoted ? -1 : 1 },
     });
 
-    await User.findByIdAndUpdate(question.author, { 
-      $inc: { reputation: hasUpvoted ? -10 : 10 } 
+    await User.findByIdAndUpdate(question.author, {
+      $inc: { reputation: hasUpvoted ? -10 : 10 },
     });
 
     revalidatePath(path);
@@ -203,12 +205,12 @@ export async function downvoteQuestion(params: QuestionVoteParams) {
       throw new Error("Question not found");
     }
 
-    await await User.findByIdAndUpdate(userId, { 
-      $inc: { reputation: hasUpvoted ? -2 : 2 } 
+    await await User.findByIdAndUpdate(userId, {
+      $inc: { reputation: hasUpvoted ? -2 : 2 },
     });
 
-    await await User.findByIdAndUpdate(question.author, { 
-      $inc: { reputation: hasUpvoted ? -10 : 10 } 
+    await await User.findByIdAndUpdate(question.author, {
+      $inc: { reputation: hasUpvoted ? -10 : 10 },
     });
 
     revalidatePath(path);
@@ -272,6 +274,65 @@ export async function getHotQuestions() {
       .limit(5);
 
     return hotQueations;
+  } catch (error) {
+    console.log(error);
+    throw error;
+  }
+}
+
+export async function getRecommendedQuestions(params: RecommendedParams) {
+  try {
+    await connectToDatabase();
+
+    const { userId, page = 1, pageSize = 20, searchQuery } = params;
+
+    const user = await User.findOne({ clerkId: userId });
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const skipAmount = (page - 1) * pageSize;
+
+    const userInteractions = await Interaction.find({ user: user._id })
+      .populate("tags")
+      .exec();
+
+    const userTags = userInteractions.reduce((tags, interaction) => {
+      if (interaction.tags) {
+        tags = tags.concat(interaction.tags);
+      }
+      return tags;
+    }, []);
+
+    const distinctUserTagIds = [
+      ...new Set(userTags.map((tag: any) => tag._id)),
+    ];
+
+    const query: FilterQuery<typeof Question> = {
+      $and: [{ tags: { $in: distinctUserTagIds } },
+            { author: { $ne: user._id } },
+    ]};
+
+    if (searchQuery) {
+      query.$or = [
+        { title: { $regex: searchQuery, $options: "i" } },
+        { content: { $regex: searchQuery, $options: "i" } },
+      ];
+    }
+
+    const totalQuestions = await Question.countDocuments(query);
+    
+    const recommendedQuestions = await Question.find(query)
+      .populate({ path: "tags", model: Tag })
+      .populate({ path: "author", model: User })
+      .skip(skipAmount)
+      .limit(pageSize);
+
+    const isNext = totalQuestions > skipAmount + recommendedQuestions.length;
+
+    return { questions: recommendedQuestions, isNext };
+
   } catch (error) {
     console.log(error);
     throw error;
