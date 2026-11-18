@@ -145,7 +145,14 @@ Nebenbei gefunden: In der alten Pfadliste fehlte bei `'question/:id'` und `'tags
 - **User ohne Webhook:** `getCurrentUser()` in `lib/auth.ts` legt eingeloggte Personen beim ersten Besuch selbst in MongoDB an, mit den Daten aus Clerks `currentUser()`. Der Webhook ist damit optional. Er überträgt nur noch Profiländerungen und Löschungen. `cache()` von React sorgt dafür, dass das pro Anfrage nur einmal läuft.
 - **Vercel-Integrationen:** Der Code liest `MONGODB_URI` (so heisst die Variable der MongoDB-Atlas-Integration von Vercel) und als Fallback den alten Namen `MONGODB_URL`.
 
-## 8. Was (noch) nicht getestet ist
+## 8. Deployment und Tests
 
-Geprüft wurden `npm run build`, der TypeScript-Check und `npm run lint` (alles ohne Fehler) sowie der HTML-Filter mit typischen XSS-Beispielen.
-Ohne echte Clerk- und MongoDB-Zugänge konnten Login, Webhook und Datenbank **nicht** im Browser durchgespielt werden. Das ist der erste Test nach dem Deployment (siehe Checkliste in der README).
+**Ursache, warum die alte Live-Version nicht mehr lief:** Der MongoDB-Atlas-Cluster von 2024 existiert nicht mehr. Die Logs zeigten `querySrv ENOTFOUND _mongodb._tcp.cluster0.….mongodb.net`, der Server-Name lässt sich also nicht mehr auflösen. Die Clerk-App von 2024 funktioniert dagegen noch.
+
+**Lösung:** Neue Gratis-Datenbank über die MongoDB-Atlas-Integration von Vercel (`devoverflow-db`, setzt `MONGODB_URI`). Der Build hat die leere Datenbank automatisch mit Demo-Daten gefüllt.
+
+Getestet (November 2026):
+- Lokal: `npm run build`, TypeScript-Check und `npm run lint` ohne Fehler, HTML-Filter mit typischen XSS-Beispielen
+- Live als Gast auf https://stack-overflow-next14-nu.vercel.app: Startseite, Fragen-Detailseite, Abstimmen ("Please log in"), Suche nach `c++`, globale Suche, Community, Profil, Tags mit Sortierung, 404 bei ungültiger ID, Weiterleitung zum Clerk-Login
+
+**Noch nicht getestet:** alles mit Login (registrieren, Frage stellen, antworten, abstimmen, Profil bearbeiten, Editor).

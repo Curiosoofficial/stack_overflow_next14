@@ -88,7 +88,9 @@ Der Editor TinyMCE ist selbst gehostet (`public/tinymce`, GPL-Lizenz mit `licens
 
 ## Screenshots
 
-Screenshots liegen in [`docs/screenshots/`](docs/screenshots/).
+![Startseite mit allen Fragen](docs/screenshots/startseite.jpg)
+
+![Detailseite einer Frage mit Code-Block und Antwort](docs/screenshots/frage-detail.jpg)
 
 ## Credits
 
