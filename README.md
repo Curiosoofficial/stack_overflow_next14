@@ -6,7 +6,9 @@ Eine Frage-Antwort-Plattform für Entwickler:innen im Stil von Stack Overflow: F
 > Aufbau, Design und Grundfunktionen stammen aus dem Kurs ([JS Mastery](https://jsmastery.com/)).
 > Ich habe die App Schritt für Schritt nachprogrammiert, um Next.js, Server Actions, MongoDB und Authentifizierung zu lernen.
 
-**Live-Demo:** _folgt nach dem Deployment_
+**Live-Demo:** [stack-overflow-next14-nu.vercel.app](https://stack-overflow-next14-nu.vercel.app)
+
+Als Gast kann man alles ansehen und durchsuchen. Zum Fragen, Antworten und Abstimmen registriert man sich mit einer E-Mail-Adresse.
 
 ## Funktionen
 

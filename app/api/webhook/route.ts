@@ -17,8 +17,11 @@ export async function POST(req: NextRequest) {
   let evt;
 
   try {
-    // Prüft die Signatur mit CLERK_WEBHOOK_SIGNING_SECRET (Clerk-Dashboard -> Webhooks)
-    evt = await verifyWebhook(req);
+    // Prüft die Signatur mit dem Signing Secret aus Clerk (Dashboard -> Webhooks).
+    // WEBHOOK_SECRET ist der alte Name aus dem Kurs und funktioniert weiterhin.
+    evt = await verifyWebhook(req, {
+      signingSecret: process.env.CLERK_WEBHOOK_SIGNING_SECRET || process.env.WEBHOOK_SECRET,
+    });
   } catch (err) {
     console.error("Webhook-Signatur ungültig:", err);
     return new Response("Invalid webhook signature", { status: 400 });
