@@ -6,6 +6,7 @@ import React from 'react'
 import { Inter, Space_Grotesk } from 'next/font/google'
 import type { Metadata } from 'next'
 import { ThemeProvider } from '@/context/ThemeProvider'
+import { EmbedBanner } from '@/components/shared/Embed'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -51,6 +52,8 @@ export default function RootLayout({
         >
           <ThemeProvider>
             {children}
+            {/* Hinweis, wenn die Seite als Demo in einem iframe läuft */}
+            <EmbedBanner />
           </ThemeProvider>
         </ClerkProvider>
         </body>
