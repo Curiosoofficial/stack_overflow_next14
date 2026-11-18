@@ -8,22 +8,21 @@ import { Button } from "@/components/ui/button";
 import { HomePageFilters } from "@/constants/filters";
 import { getQuestions, getRecommendedQuestions } from "@/lib/actions/question.action";
 import { SearchParamsProps } from "@/types";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
   title: 'Home | Dev Overflow',
-  description: 'A community-driven platform for asking and answering programing questions. Get help, share knowlegde, and collaborate with developers from around the world. Explore topics in web development, mobile app development, algorithms, data structures, and more.',
+  description: 'A community-driven platform for asking and answering programming questions. Get help, share knowledge, and collaborate with developers from around the world. Explore topics in web development, mobile app development, algorithms, data structures, and more.',
   icons: {
     icon: '/assets/images/site-logo.svg'
   }
 }
 
-
-
-export default async function Home({ searchParams }: SearchParamsProps) {
-  const { userId } = auth()
+export default async function Home(props: SearchParamsProps) {
+  const searchParams = await props.searchParams;
+  const { userId } = await auth();
   let result;
 
   if(searchParams?.filter === 'recommended') {

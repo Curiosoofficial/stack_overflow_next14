@@ -9,7 +9,8 @@ import Link from "next/link";
 
 import React from "react";
 
-const Page = async ({ searchParams}: SearchParamsProps) => {
+const Page = async (props: SearchParamsProps) => {
+  const searchParams = await props.searchParams;
   const result = await getAllTags({
     searchQuery: searchParams.q,
     filter: searchParams.filter,
@@ -81,4 +82,3 @@ const Page = async ({ searchParams}: SearchParamsProps) => {
 
 export default Page;
 
-// 9.53

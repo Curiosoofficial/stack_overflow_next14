@@ -26,17 +26,20 @@ export interface Country {
   };
 }
 
+// Next.js 15+ übergibt params und searchParams als Promise (vorher: direkt als Objekt).
+export type ResolvedSearchParams = { [key: string]: string | undefined };
+
 export interface ParamsProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export interface SearchParamsProps {
-  searchParams: { [key: string]: string | undefined };
+  searchParams: Promise<ResolvedSearchParams>;
 }
 
 export interface URLProps {
-  params: { id: string };
-  searchParams: { [key: string]: string | undefined };
+  params: Promise<{ id: string }>;
+  searchParams: Promise<ResolvedSearchParams>;
 }
 
 export interface BadgeCounts {

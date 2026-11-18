@@ -1,7 +1,7 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import { sidebarLinks } from "@/constants";
-import { SignedOut, useAuth } from "@clerk/nextjs";
+import { Show, useAuth } from "@clerk/nextjs";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -9,29 +9,27 @@ import { usePathname } from "next/navigation";
 
 const LeftSidebar = () => {
   const pathname = usePathname();
- 
+
   const { userId } = useAuth();
   return (
     <section className="background-light900_dark200 light-border sticky left-0 top-0 flex h-screen flex-col justify-between overflow-y-auto border-r p-6 pt-36 shadow-light-300 dark:shadow-none max-sm:hidden lg:w-[266px]">
       <div className="flex flex-1 flex-col gap-6">
         {sidebarLinks.map((item) => {
-          const isActive =
-            (pathname.includes(item.route) && item.route.length > 1) ||
-            pathname === item.route;
+          // Vorher wurde item.route direkt verändert. Das ist die gemeinsame
+          // Konstante: Bei jedem Render wurde die User-ID erneut angehängt
+          // (/profile/id/id/...). Jetzt rechnen wir mit einer lokalen Variable.
+          const route =
+            item.route === "/profile" ? (userId ? `/profile/${userId}` : null) : item.route;
 
-            if(item.route === '/profile') {
-              if(userId) {
-                item.route = `${item.route}/${userId}`
-                console.log(userId)
-              } else {
-                return null;
-              }
-            }
+          if (!route) return null;
+
+          const isActive =
+            (pathname.includes(route) && route.length > 1) || pathname === route;
 
           return (
             <Link
-              key={item.route}
-              href={item.route}
+              key={item.label}
+              href={route}
               className={`${
                 isActive
                   ? "primary-gradient rounded-lg text-light-900"
@@ -53,7 +51,7 @@ const LeftSidebar = () => {
         })}
       </div>
 
-      <SignedOut>
+      <Show when="signed-out">
             <div className="flex flex-col gap-3">
               
                 <Link href="/sign-in">
@@ -85,7 +83,7 @@ const LeftSidebar = () => {
                 </Link>
               
             </div>
-        </SignedOut>
+        </Show>
 
     </section>
   );

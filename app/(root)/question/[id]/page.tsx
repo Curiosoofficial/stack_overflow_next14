@@ -2,27 +2,36 @@ import Answer from "@/components/forms/Answer";
 import AllAnswers from "@/components/shared/AllAnswers";
 import Metric from "@/components/shared/Metric";
 import ParseHTML from "@/components/shared/ParseHTML";
+import ProfileSyncNotice from "@/components/shared/ProfileSyncNotice";
 import RenderTag from "@/components/shared/RenderTag";
 import Votes from "@/components/shared/Votes";
 import { getQuestionById } from "@/lib/actions/question.action";
-import { getUserById } from "@/lib/actions/user.action";
+import { getCurrentUser } from "@/lib/auth";
 import { formatBigNumber, getTimeStamp } from "@/lib/utils";
-import { auth } from "@clerk/nextjs";
+import { URLProps } from "@/types";
+import { auth } from "@clerk/nextjs/server";
 import Image from "next/image";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import React from "react";
 
-const page = async ({ params, searchParams }: any) => {
-  const result = await getQuestionById({ questionId: params.id });
+const Page = async (props: URLProps) => {
+  const { id } = await props.params;
+  const searchParams = await props.searchParams;
 
-  const { userId: clerkId } = auth()
+  const result = await getQuestionById({ questionId: id });
 
-  let mongoUser;
+  if (!result) notFound();
 
-  if (clerkId) {
-    mongoUser = await getUserById({ userId: clerkId });
-  }
+  const { userId: clerkId } = await auth();
 
+  const mongoUser = clerkId ? await getCurrentUser() : null;
+
+  // Vorher wurde hier immer mongoUser._id gelesen. Für ausgeloggte Besucher ist
+  // mongoUser aber leer, und die Seite stürzte für alle Gäste ab.
+  const hasUpvoted = mongoUser ? result.upvotes.includes(mongoUser._id) : false;
+  const hasDownvoted = mongoUser ? result.downvotes.includes(mongoUser._id) : false;
+  const hasSaved = mongoUser ? mongoUser.saved.includes(result._id) : false;
 
   return (
     <>
@@ -37,23 +46,21 @@ const page = async ({ params, searchParams }: any) => {
               alt="profile picture"
               width={22}
               height={22}
-              className=""
+              className="rounded-full"
             />
-            <p className="paragraph-semibold text-dark300_light700">
-              {result.author.name}
-            </p>
+            <p className="paragraph-semibold text-dark300_light700">{result.author.name}</p>
           </Link>
 
           <div className="flex justify-end">
             <Votes
               type="Question"
               itemId={JSON.stringify(result._id)}
-              userId={JSON.stringify(mongoUser._id)}
+              isSignedIn={Boolean(mongoUser)}
               upvotes={result.upvotes.length}
-              hasUpvoted={result.upvotes.includes(mongoUser._id)}
+              hasUpvoted={hasUpvoted}
               downvotes={result.downvotes.length}
-              hasDownvoted={result.downvotes.includes(mongoUser._id)}
-              hasSaved={mongoUser?.saved.includes(result._id)}
+              hasDownvoted={hasDownvoted}
+              hasSaved={hasSaved}
             />
           </div>
         </div>
@@ -73,7 +80,7 @@ const page = async ({ params, searchParams }: any) => {
 
         <Metric
           imgUrl="/assets/icons/message.svg"
-          alt="Upvotes"
+          alt="Answers"
           value={formatBigNumber(result.answers.length)}
           title=" Answers"
           textStyles="small-medium text-dark400_light800"
@@ -98,19 +105,32 @@ const page = async ({ params, searchParams }: any) => {
 
       <AllAnswers
         questionId={result._id}
-        userId={mongoUser._id}
+        userId={mongoUser?._id}
         totalAnswers={result.answers.length}
-        page={searchParams?.page}
+        page={searchParams?.page ? +searchParams.page : 1}
         filter={searchParams?.filter}
       />
 
-      <Answer 
-        question={result.content}
-        questionId={JSON.stringify(result._id)}
-        authorId={JSON.stringify(mongoUser._id)}
-      />
+      {!clerkId ? (
+        <p className="paragraph-regular text-dark400_light800 mt-10">
+          <Link href="/sign-in" className="primary-text-gradient font-semibold">
+            Log in
+          </Link>{" "}
+          to write an answer.
+        </p>
+      ) : mongoUser ? (
+        <Answer
+          question={result.content}
+          questionId={JSON.stringify(result._id)}
+          aiEnabled={Boolean(process.env.OPENAI_API_KEY)}
+        />
+      ) : (
+        <div className="mt-10">
+          <ProfileSyncNotice />
+        </div>
+      )}
     </>
   );
 };
 
-export default page;
+export default Page;

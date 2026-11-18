@@ -1,9 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { getUserInfo } from "@/lib/actions/user.action";
+import { getCurrentUser } from "@/lib/auth";
 import { URLProps } from "@/types";
-import { SignedIn, auth } from "@clerk/nextjs";
+import { Show } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import Image from "next/image";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getJoinedDate } from "@/lib/utils";
@@ -12,14 +15,17 @@ import Stats from "@/components/shared/Stats";
 import QuestionsTab from "@/components/shared/QuestionsTab";
 import AnswersTab from "@/components/shared/AnswersTab";
 
+const Page = async (props: URLProps) => {
+  const { id } = await props.params;
+  const searchParams = await props.searchParams;
+  const { userId: clerkId } = await auth();
 
+  // Eigenes Profil: sicherstellen, dass der User in MongoDB existiert
+  if (clerkId === id) await getCurrentUser();
 
-const Page = async ({ params, searchParams }: URLProps) => {
-  const { userId: clerkId } = auth();
+  const userInfo = await getUserInfo({ userId: id });
 
-  const userInfo = await getUserInfo({ userId: params.id });
-
-  
+  if (!userInfo) notFound();
 
   return (
     <>
@@ -45,7 +51,7 @@ const Page = async ({ params, searchParams }: URLProps) => {
               {userInfo.user.portfolioWebsite && (
                 <ProfileLink
                   imgUrl="/assets/icons/link.svg"
-                  href={userInfo.user.PortfolioWebsite}
+                  href={userInfo.user.portfolioWebsite}
                   title="Portfolio"
                 />
               )}
@@ -68,7 +74,7 @@ const Page = async ({ params, searchParams }: URLProps) => {
         </div>
 
         <div className="flex justify-end max-sm:mb-5 max-sm:w-full sm:mt-3">
-          <SignedIn>
+          <Show when="signed-in">
             {clerkId === userInfo.user.clerkId && (
               <Link href="/profile/edit">
                 <Button className="paragraph-medium btn-secondary text-dark300_light900 min-h-[46px]  min-w-[175px] px-4 py-3">
@@ -76,7 +82,7 @@ const Page = async ({ params, searchParams }: URLProps) => {
                 </Button>
               </Link>
             )}
-          </SignedIn>
+          </Show>
         </div>
       </div>
 

@@ -16,15 +16,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ProfileSchema } from "@/lib/validation";
 import { usePathname, useRouter } from "next/navigation";
-import { updateUser } from "@/lib/actions/user.action";
-
+import { updateProfile } from "@/lib/actions/user.action";
+import { toast } from "../ui/use-toast";
 
 interface Props {
-  clerkId: string;
   user: string;
 }
 
-const Profile = ({ clerkId, user }: Props) => {
+const Profile = ({ user }: Props) => {
   const parsedUser = JSON.parse(user);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
@@ -45,26 +44,29 @@ const Profile = ({ clerkId, user }: Props) => {
     setIsSubmitting(true);
 
     try {
-        await updateUser({
-            clerkId,
-            updateData: {
-                name: values.name,
-                username: values.username,
-                portfolioWebsite: values.portfolioWebsite,
-                location: values.location,
-                bio: values.bio,
-            },
-            path: pathname,
-            
-        })
+      // Welches Profil geändert wird, entscheidet der Server (eingeloggte Person)
+      await updateProfile({
+        updateData: {
+          name: values.name,
+          username: values.username,
+          portfolioWebsite: values.portfolioWebsite,
+          location: values.location,
+          bio: values.bio,
+        },
+        path: pathname,
+      });
 
-        router.back();
-    } catch (error) {
-       console.log(error);
+      router.back();
+    } catch {
+      // z.B. wenn der Benutzername schon vergeben ist
+      toast({
+        title: "Could not save your profile",
+        description: "The username might already be taken.",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
-    console.log(values);
   }
 
   return (

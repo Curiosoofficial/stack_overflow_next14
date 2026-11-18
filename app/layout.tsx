@@ -1,6 +1,6 @@
-/* eslint-disable camelcase */
 import { ClerkProvider } from '@clerk/nextjs'
 import './globals.css'
+import '../styles/theme.css'
 import '../styles/prism.css'
 import React from 'react'
 import { Inter, Space_Grotesk } from 'next/font/google'
@@ -34,10 +34,14 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    
-      <html lang="en">
+      // suppressHydrationWarning: der ThemeProvider setzt die Klasse "dark" erst im Browser
+      <html lang="en" suppressHydrationWarning>
         <body className={`${inter.variable} ${spaceGrotesk.variable}`}>
+        {/* Clerk Core 3: ClerkProvider muss innerhalb von <body> liegen */}
         <ClerkProvider
+          signInUrl="/sign-in"
+          signUpUrl="/sign-up"
+          afterSignOutUrl="/"
           appearance={{
             elements: {
             formButtonPrimary: 'primary-gradient',

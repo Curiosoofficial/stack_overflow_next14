@@ -2,7 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url("../styles/theme.css");
+/* styles/theme.css wird jetzt in app/layout.tsx importiert.
+   Ein @import nach anderen Regeln ist ungültiges CSS, und Turbopack (Next.js 16) bricht dann ab. */
 
 body {
   font-family: "Inter", sans-serif;

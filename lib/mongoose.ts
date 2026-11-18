@@ -1,28 +1,32 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-let isConnected: boolean = false;
+// Auf Vercel laufen Server-Funktionen in kurzlebigen Instanzen. Wir merken uns
+// das Verbindungs-Promise, damit parallele Aufrufe nicht je eine eigene
+// Verbindung aufbauen.
+let connectionPromise: Promise<typeof mongoose> | null = null;
 
 export const connectToDatabase = async () => {
-    mongoose.set('strictQuery', true);
+  mongoose.set("strictQuery", true);
 
-    if (!process.env.MONGODB_URL) {
-        return console.log('missing mongodburl');
-    }
+  if (mongoose.connection.readyState === 1) return;
 
-    if (isConnected) {
-        return;    
-    }
+  // MONGODB_URI setzt die MongoDB-Atlas-Integration von Vercel automatisch,
+  // MONGODB_URL ist der Name aus dem Kurs. Beides funktioniert.
+  const url = process.env.MONGODB_URI || process.env.MONGODB_URL;
 
-    try {
-        await mongoose.connect(process.env.MONGODB_URL, {
-            dbName: 'devFlow'
-        })
+  if (!url) {
+    throw new Error(
+      "MONGODB_URI fehlt. Trage den Connection-String von MongoDB Atlas in .env.local bzw. in Vercel ein."
+    );
+  }
 
-        
-        isConnected = true;
+  if (!connectionPromise) {
+    connectionPromise = mongoose.connect(url, { dbName: "devFlow" }).catch((error) => {
+      // Beim nächsten Aufruf neu versuchen statt für immer den Fehler zu behalten
+      connectionPromise = null;
+      throw error;
+    });
+  }
 
-        console.log('MongoDb is connected')
-    } catch (error) {
-        console.log('MongoDB connection failed', error)
-    }
-}
+  await connectionPromise;
+};

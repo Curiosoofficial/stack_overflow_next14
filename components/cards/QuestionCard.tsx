@@ -3,7 +3,7 @@ import React from "react";
 import RenderTag from "../shared/RenderTag";
 import Metric from "../shared/Metric";
 import { formatBigNumber, getTimeStamp } from "@/lib/utils";
-import { SignedIn } from "@clerk/nextjs";
+import { Show } from "@clerk/nextjs";
 import EditDeleteAction from "../shared/EditDeleteAction";
 
 interface QuestionProps {
@@ -54,11 +54,13 @@ const QuestionCard = ({
           </Link>
         </div>
 
-        <SignedIn>
+        {/* type war vorher "question" (klein), geprüft wurde aber "Question":
+            Fragen liessen sich darum nie löschen. */}
+        <Show when="signed-in">
           {showActionButtons && (
-            <EditDeleteAction type="question" itemId={JSON.stringify(_id)} />
+            <EditDeleteAction type="Question" itemId={JSON.stringify(_id)} />
           )}
-        </SignedIn>
+        </Show>
       </div>
 
       <div className="mt-3.5 flex flex-wrap gap-2">
@@ -74,7 +76,7 @@ const QuestionCard = ({
           value={author.name}
           title={` - asked ${getTimeStamp(createdAt)}`}
           textStyles="body-medium text-dark400_light700"
-          href={`/profile/${author._id}`}
+          href={`/profile/${author.clerkId}`}
           isAuthor
         />
         <div className="flex items-center gap-3 max-sm:flex-wrap max-sm:justify-start">

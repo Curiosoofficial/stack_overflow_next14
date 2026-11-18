@@ -1,36 +1,96 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# DevOverflow
 
-## Getting Started
+Eine Frage-Antwort-Plattform für Entwickler:innen im Stil von Stack Overflow: Fragen stellen, mit Code-Beispielen antworten, abstimmen, Fragen speichern und nach Tags oder Personen suchen.
 
-First, run the development server:
+> **Tutorial-Projekt, nachgebaut nach dem Next.js-Kurs von JS Mastery.**
+> Aufbau, Design und Grundfunktionen stammen aus dem Kurs ([JS Mastery](https://jsmastery.com/)).
+> Ich habe die App Schritt für Schritt nachprogrammiert, um Next.js, Server Actions, MongoDB und Authentifizierung zu lernen.
+
+**Live-Demo:** [stack-overflow-next14-nu.vercel.app](https://stack-overflow-next14-nu.vercel.app)
+
+Als Gast kann man alles ansehen und durchsuchen. Zum Fragen, Antworten und Abstimmen registriert man sich mit einer E-Mail-Adresse.
+
+## Funktionen
+
+- Fragen stellen und bearbeiten (Rich-Text-Editor mit Code-Blöcken und Syntax-Highlighting)
+- Antworten schreiben, Up- und Downvotes, Fragen in einer eigenen Sammlung speichern
+- Tags, Community-Seite und Profile mit Reputation und Abzeichen
+- Globale Suche über Fragen, Antworten, Tags und Personen sowie Filter und Seitennavigation
+- Empfehlungen anhand der Tags, mit denen man schon zu tun hatte
+- Login und Registrierung mit Clerk, Hell- und Dunkelmodus
+- Optional: KI-Antwortvorschlag über OpenAI (nur mit eigenem API-Key)
+
+## Stack
+
+| Bereich | Technik |
+| --- | --- |
+| Framework | Next.js 16 (App Router, Server Components, Server Actions), React 19, TypeScript |
+| Daten | MongoDB Atlas mit Mongoose |
+| Login | Clerk (inkl. Webhook, der neue Accounts in MongoDB anlegt) |
+| UI | Tailwind CSS 3, shadcn/ui (Radix), TinyMCE, Prism.js |
+| Formulare | React Hook Form mit Zod-Validierung |
+| Hosting | Vercel |
+
+## Wartung 2026
+
+Der Kurs-Stand von 2024 (Next.js 14, Clerk v4) lief nicht mehr zuverlässig und hatte bekannte Sicherheitslücken. Gegenüber dem Kurs wurde unter anderem geändert:
+
+- Upgrade auf Next.js 16, React 19 und Clerk Core 3 (`middleware.ts` heisst jetzt `proxy.ts`, `params` und `searchParams` sind Promises)
+- Jede Server Action prüft selbst, wer eingeloggt ist und ob die Person das darf. Vorher konnte man fremde Fragen löschen oder Accounts entfernen.
+- Benutzer-HTML wird vor dem Anzeigen gefiltert (Schutz vor XSS), Suchbegriffe werden für reguläre Ausdrücke maskiert
+- Abstürze behoben, z.B. Fragen-Detailseite für nicht eingeloggte Besucher, Suche nach `c++`, ungültige IDs in der URL
+- Platzhalter aus dem Kurs ersetzt (fest eingebaute Tags und Suchtreffer, toter "Find Jobs"-Link, KI-Knopf mit `alert`)
+- Einfacheres Setup: TinyMCE ist selbst gehostet (kein API-Key), neue Accounts werden auch ohne Clerk-Webhook angelegt, und eine leere Datenbank wird beim Build mit Demo-Daten gefüllt
+
+Die Details mit Ursache und Lösung stehen in [docs/REPARATUR-NOTIZEN.md](docs/REPARATUR-NOTIZEN.md).
+
+## Lokal starten
+
+Voraussetzungen: Node.js 20.9 oder neuer, eine MongoDB-Datenbank (z.B. kostenlos bei MongoDB Atlas) und eine Clerk-App.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install                  # kopiert auch den TinyMCE-Editor nach public/tinymce
+cp .env.example .env.local   # danach die Werte in .env.local eintragen
+npm run dev                  # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Demo-Daten (4 Demo-Personen, 6 Fragen, 4 Antworten) in die Datenbank schreiben:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run seed
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+Das Skript löscht nur seine eigenen alten Demo-Daten und kann beliebig oft laufen. `npm run build` ruft es automatisch auf, aber nur, wenn die Datenbank noch leer ist.
 
-## Learn More
+Weitere Befehle: `npm run build` (Produktions-Build), `npm run lint` (ESLint).
 
-To learn more about Next.js, take a look at the following resources:
+## Umgebungsvariablen
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Alle Namen stehen mit Erklärung in [.env.example](.env.example).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+| Variable | Pflicht | Woher |
+| --- | --- | --- |
+| `MONGODB_URI` | ja | Vercel-Integration "MongoDB Atlas" (automatisch) oder Atlas → Connect |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | ja | Vercel-Integration "Clerk" (automatisch) oder Clerk → API Keys |
+| `CLERK_SECRET_KEY` | ja | wie oben |
+| `CLERK_WEBHOOK_SIGNING_SECRET` | nein | Clerk → Webhooks, überträgt Profiländerungen und Löschungen |
+| `OPENAI_API_KEY` | nein | nur für den KI-Antwortvorschlag |
+| `OPENAI_MODEL` | nein | Standard: `gpt-4o-mini` |
 
-## Deploy on Vercel
+## Deployment auf Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Repository in Vercel importieren (Framework wird automatisch erkannt).
+2. Im Projekt unter *Storage* bzw. *Integrations* aus dem Marketplace **MongoDB Atlas** und **Clerk** hinzufügen (Gratis-Pläne) und mit dem Projekt verbinden. Die Keys landen dabei automatisch in den Environment Variables.
+3. Neu deployen. Beim Build wird die leere Datenbank mit Demo-Daten gefüllt.
+4. Optional: In Clerk unter *Webhooks* einen Endpoint `https://<deine-domain>/api/webhook` mit `user.created`, `user.updated` und `user.deleted` anlegen und das Signing Secret als `CLERK_WEBHOOK_SIGNING_SECRET` eintragen.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+Der Editor TinyMCE ist selbst gehostet (`public/tinymce`, GPL-Lizenz mit `licenseKey="gpl"`) und braucht weder Account noch API-Key.
+
+## Screenshots
+
+Screenshots liegen in [`docs/screenshots/`](docs/screenshots/).
+
+## Credits
+
+- Kurs und Design-Vorlage: [JS Mastery](https://jsmastery.com/)
+- Icons und Bilder in `public/assets` stammen aus den Kursmaterialien

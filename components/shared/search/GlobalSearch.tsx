@@ -14,23 +14,30 @@ const GlobalSearch = () => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const query = searchParams.get("q");
+  // Die globale Suche steht im URL-Parameter "global" ("q" gehört der lokalen Suche).
+  // Vorher wurde "q" gelesen: Leeren des Suchfelds entfernte "global" nie aus der URL.
+  const query = searchParams.get("global");
 
   const [search, setSearch] = useState(query || "");
   const [isOpen, setIsOpen] = useState(false)
+  const [prevPathname, setPrevPathname] = useState(pathname)
 
-  const searchContainerRef = useRef(null)
+  const searchContainerRef = useRef<HTMLDivElement>(null)
+
+  // Bei Seitenwechsel das Ergebnis-Fenster schliessen. React empfiehlt dafür,
+  // den State direkt beim Rendern anzupassen statt setState im useEffect.
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname)
+    setIsOpen(false)
+  }
 
   useEffect(() => {
-    const handleOutsideClick = (event: any) => {
-      // @ts-ignore
-      if(searchContainerRef.current && !searchContainerRef.current.contains(event.target)) {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if(searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
         setSearch("");
       }
     }
-
-    setIsOpen(false);
 
     document.addEventListener("click", handleOutsideClick);
 

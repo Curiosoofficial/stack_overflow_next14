@@ -1,10 +1,11 @@
 import { getUserQuestions } from "@/lib/actions/user.action";
-import { SearchParamsProps } from "@/types";
+import { ResolvedSearchParams } from "@/types";
 import React from "react";
 import QuestionCard from "../cards/QuestionCard";
 import Pagination from "./Pagination";
 
-interface Props extends SearchParamsProps {
+interface Props {
+  searchParams: ResolvedSearchParams;
   userId: string;
   clerkId?: string | null;
 }
@@ -44,4 +45,3 @@ const QuestionsTab = async ({ searchParams, userId, clerkId }: Props) => {
 
 export default QuestionsTab;
 
-// 14.11

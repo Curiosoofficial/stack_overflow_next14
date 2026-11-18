@@ -1,103 +1,64 @@
-/* eslint-disable camelcase */
-import { Webhook } from 'svix'
-import { headers } from 'next/headers'
-import { WebhookEvent } from '@clerk/nextjs/server'
-import { createUser, deleteUser, updateUser } from '@/lib/actions/user.action'
-import { NextResponse } from 'next/server'
- 
-export async function POST(req: Request) {
- 
-  // You can find this in the Clerk Dashboard -> Webhooks -> choose the webhook
-  const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET
- 
-  if (!WEBHOOK_SECRET) {
-    throw new Error('Please add WEBHOOK_SECRET from Clerk Dashboard to .env or .env.local')
-  }
- 
-  // Get the headers
-  const headerPayload = headers();
-  const svix_id = headerPayload.get("svix-id");
-  const svix_timestamp = headerPayload.get("svix-timestamp");
-  const svix_signature = headerPayload.get("svix-signature");
- 
-  // If there are no headers, error out
-  if (!svix_id || !svix_timestamp || !svix_signature) {
-    return new Response('Error occured -- no svix headers', {
-      status: 400
-    })
-  }
- 
-  // Get the body
-  const payload = await req.json()
-  const body = JSON.stringify(payload);
- 
-  // Create a new Svix instance with your secret.
-  const wh = new Webhook(WEBHOOK_SECRET);
- 
-  let evt: WebhookEvent
- 
-  // Verify the payload with the headers
+import { verifyWebhook } from "@clerk/nextjs/webhooks";
+import type { UserJSON } from "@clerk/nextjs/server";
+import { NextRequest, NextResponse } from "next/server";
+import {
+  ClerkUserData,
+  createUserFromClerk,
+  deleteUserFromClerk,
+  toUserData,
+  updateUserFromClerk,
+} from "@/lib/user-sync";
+
+// Optional: Clerk schickt bei Registrierung/Änderung/Löschung ein Event hierher.
+// Neue User werden auch ohne Webhook beim ersten Besuch angelegt (lib/auth.ts).
+// Der Webhook sorgt zusätzlich dafür, dass Namensänderungen und gelöschte
+// Accounts in MongoDB ankommen.
+export async function POST(req: NextRequest) {
+  let evt;
+
   try {
-    evt = wh.verify(body, {
-      "svix-id": svix_id,
-      "svix-timestamp": svix_timestamp,
-      "svix-signature": svix_signature,
-    }) as WebhookEvent
+    // Prüft die Signatur mit dem Signing Secret aus Clerk (Dashboard -> Webhooks).
+    // WEBHOOK_SECRET ist der alte Name aus dem Kurs und funktioniert weiterhin.
+    evt = await verifyWebhook(req, {
+      signingSecret: process.env.CLERK_WEBHOOK_SIGNING_SECRET || process.env.WEBHOOK_SECRET,
+    });
   } catch (err) {
-    console.error('Error verifying webhook:', err);
-    return new Response('Error occured', {
-      status: 400
-    })
+    console.error("Webhook-Signatur ungültig:", err);
+    return new Response("Invalid webhook signature", { status: 400 });
   }
- 
-  // Get the ID and type
-  
-  const eventType = evt.type;
 
-  
+  if (evt.type === "user.created") {
+    const mongoUser = await createUserFromClerk(fromWebhook(evt.data));
+    return NextResponse.json({ message: "OK", user: mongoUser });
+  }
 
-if (eventType === "user.created") {
-  const { id, email_addresses, image_url, username, first_name, last_name } =
-    evt.data;
+  if (evt.type === "user.updated") {
+    const mongoUser = await updateUserFromClerk(fromWebhook(evt.data));
+    return NextResponse.json({ message: "OK", user: mongoUser });
+  }
 
-  const mongoUser = await createUser({
-    clerkId: id,
-    name: `${first_name}${last_name ? ` ${last_name}` : ""}`,
-    username: username!,
-    email: email_addresses[0].email_address,
-    picture: image_url,
+  if (evt.type === "user.deleted") {
+    if (evt.data.id) {
+      await deleteUserFromClerk(evt.data.id);
+    }
+    return NextResponse.json({ message: "OK" });
+  }
+
+  return new Response("", { status: 200 });
+}
+
+/** Webhook-Daten (snake_case) in unser Format umwandeln. */
+function fromWebhook(data: UserJSON): ClerkUserData {
+  const primaryEmail =
+    data.email_addresses.find((email) => email.id === data.primary_email_address_id) ??
+    data.email_addresses[0];
+
+  return toUserData({
+    id: data.id,
+    email: primaryEmail?.email_address ?? null,
+    imageUrl: data.image_url,
+    username: data.username,
+    firstName: data.first_name,
+    lastName: data.last_name,
   });
-
-  return NextResponse.json({ message: "OK+", user: mongoUser });
 }
-
-if (eventType === "user.updated") {
-  const { id, email_addresses, image_url, username, first_name, last_name } =
-    evt.data;
-
-  const mongoUser = await updateUser({
-    clerkId: id,
-    updateData: {
-      name: `${first_name}${last_name ? ` ${last_name}` : ""}`,
-      username: username!,
-      email: email_addresses[0].email_address,
-      picture: image_url,
-    },
-    path: `/profile/${id}`,
-  });
-
-  return NextResponse.json({ message: "OK+", user: mongoUser });
-}
-
-if(eventType === 'user.deleted') {
-  const { id } = evt.data;
-
-  const deletedUser = await deleteUser({
-      clerkId: id!,
-  })
-
-  return NextResponse.json({ message: "OK+", user: deletedUser });
-}
-  return new Response('', { status: 200 })
-}
- 

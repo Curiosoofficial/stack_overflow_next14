@@ -17,11 +17,13 @@ import { revalidatePath } from "next/cache";
 import Answer from "@/database/answer.model";
 import Interaction from "@/database/interaction.model";
 import { FilterQuery } from "mongoose";
-
+import { assertObjectId, isSameId, requireCurrentUser } from "../auth";
+import { escapeRegExp } from "../utils";
+import { QuestionsSchema } from "../validation";
 
 export async function getQuestions(params: GetQuestionsParams) {
   try {
-    connectToDatabase();
+    await connectToDatabase();
 
     const { searchQuery, filter, page = 1, pageSize = 10 } = params;
 
@@ -30,10 +32,8 @@ export async function getQuestions(params: GetQuestionsParams) {
     const query: FilterQuery<typeof Question> = {};
 
     if (searchQuery) {
-      query.$or = [
-        { title: { $regex: new RegExp(searchQuery, "i") } },
-        { content: { $regex: new RegExp(searchQuery, "i") } },
-      ];
+      const search = new RegExp(escapeRegExp(searchQuery), "i");
+      query.$or = [{ title: { $regex: search } }, { content: { $regex: search } }];
     }
 
     let sortOptions = {};
@@ -71,10 +71,16 @@ export async function getQuestions(params: GetQuestionsParams) {
 
 export async function createQuestion(params: CreateQuestionParams) {
   try {
-    connectToDatabase();
+    await connectToDatabase();
 
-    // create the question
-    const { title, content, tags, author, path } = params;
+    const { title, content, tags, path } = params;
+
+    // Eingaben auch auf dem Server prüfen (die Browser-Prüfung lässt sich umgehen)
+    QuestionsSchema.parse({ title, explanation: content, tags });
+
+    // Der Autor ist immer die eingeloggte Person, nie eine ID aus dem Browser.
+    const currentUser = await requireCurrentUser();
+    const author = currentUser._id;
 
     const question = await Question.create({
       title,
@@ -86,7 +92,7 @@ export async function createQuestion(params: CreateQuestionParams) {
 
     for (const tag of tags) {
       const existingTag = await Tag.findOneAndUpdate(
-        { name: { $regex: new RegExp(`^${tag}$`, "i") } },
+        { name: { $regex: new RegExp(`^${escapeRegExp(tag)}$`, "i") } },
         { $setOnInsert: { name: tag }, $push: { questions: question._id } },
         { upsert: true, new: true }
       );
@@ -108,7 +114,6 @@ export async function createQuestion(params: CreateQuestionParams) {
     await User.findByIdAndUpdate(author, { $inc: { reputation: 5 } });
 
     revalidatePath(path);
-    console.log(path);
   } catch (error) {
     console.log(error);
     throw error;
@@ -117,9 +122,12 @@ export async function createQuestion(params: CreateQuestionParams) {
 
 export async function getQuestionById(params: GetQuestionByIdParams) {
   try {
-    connectToDatabase();
+    await connectToDatabase();
 
     const { questionId } = params;
+
+    // Ungültige IDs in der URL (z.B. /question/abc) ergeben "nicht gefunden" statt Absturz
+    if (!/^[a-f0-9]{24}$/i.test(String(questionId))) return null;
 
     const question = await Question.findById(questionId)
       .populate({ path: "tags", model: Tag, select: "_id name" })
@@ -138,9 +146,13 @@ export async function getQuestionById(params: GetQuestionByIdParams) {
 
 export async function upvoteQuestion(params: QuestionVoteParams) {
   try {
-    connectToDatabase();
+    await connectToDatabase();
 
-    const { questionId, userId, hasUpvoted, hasDownvoted, path } = params;
+    const { questionId, hasUpvoted, hasDownvoted, path } = params;
+    assertObjectId(questionId, "question id");
+
+    const currentUser = await requireCurrentUser();
+    const userId = currentUser._id;
 
     let updateQuery = {};
 
@@ -180,9 +192,13 @@ export async function upvoteQuestion(params: QuestionVoteParams) {
 
 export async function downvoteQuestion(params: QuestionVoteParams) {
   try {
-    connectToDatabase();
+    await connectToDatabase();
 
-    const { questionId, userId, hasUpvoted, hasDownvoted, path } = params;
+    const { questionId, hasUpvoted, hasDownvoted, path } = params;
+    assertObjectId(questionId, "question id");
+
+    const currentUser = await requireCurrentUser();
+    const userId = currentUser._id;
 
     let updateQuery = {};
 
@@ -205,12 +221,12 @@ export async function downvoteQuestion(params: QuestionVoteParams) {
       throw new Error("Question not found");
     }
 
-    await await User.findByIdAndUpdate(userId, {
-      $inc: { reputation: hasUpvoted ? -2 : 2 },
+    await User.findByIdAndUpdate(userId, {
+      $inc: { reputation: hasDownvoted ? -2 : 2 },
     });
 
-    await await User.findByIdAndUpdate(question.author, {
-      $inc: { reputation: hasUpvoted ? -10 : 10 },
+    await User.findByIdAndUpdate(question.author, {
+      $inc: { reputation: hasDownvoted ? -10 : 10 },
     });
 
     revalidatePath(path);
@@ -222,17 +238,27 @@ export async function downvoteQuestion(params: QuestionVoteParams) {
 
 export async function deleteQuestion(params: DeleteQuestionParams) {
   try {
-    connectToDatabase();
+    await connectToDatabase();
 
     const { questionId, path } = params;
+    assertObjectId(questionId, "question id");
+
+    const currentUser = await requireCurrentUser();
+    const question = await Question.findById(questionId);
+
+    if (!question) {
+      throw new Error("Question not found");
+    }
+
+    // Nur die Autorin oder der Autor darf die eigene Frage löschen
+    if (!isSameId(question.author, currentUser._id)) {
+      throw new Error("You can only delete your own questions.");
+    }
 
     await Question.deleteOne({ _id: questionId });
     await Answer.deleteMany({ question: questionId });
     await Interaction.deleteMany({ question: questionId });
-    await Tag.updateMany(
-      { questions: questionId },
-      { $pull: { questions: questionId } }
-    );
+    await Tag.updateMany({ questions: questionId }, { $pull: { questions: questionId } });
 
     revalidatePath(path);
   } catch (error) {
@@ -243,14 +269,21 @@ export async function deleteQuestion(params: DeleteQuestionParams) {
 
 export async function editQuestion(params: EditQuestionParams) {
   try {
-    connectToDatabase();
+    await connectToDatabase();
 
     const { questionId, title, content, path } = params;
+    assertObjectId(questionId, "question id");
+    QuestionsSchema.pick({ title: true, explanation: true }).parse({ title, explanation: content });
 
+    const currentUser = await requireCurrentUser();
     const question = await Question.findById(questionId).populate("tags");
 
     if (!question) {
       throw new Error("Question not found");
+    }
+
+    if (!isSameId(question.author, currentUser._id)) {
+      throw new Error("You can only edit your own questions.");
     }
 
     question.title = title;
@@ -267,13 +300,11 @@ export async function editQuestion(params: EditQuestionParams) {
 
 export async function getHotQuestions() {
   try {
-    connectToDatabase();
+    await connectToDatabase();
 
-    const hotQueations = await Question.find({})
-      .sort({ views: -1, upvotes: -1 })
-      .limit(5);
+    const hotQuestions = await Question.find({}).sort({ views: -1, upvotes: -1 }).limit(5);
 
-    return hotQueations;
+    return hotQuestions;
   } catch (error) {
     console.log(error);
     throw error;
@@ -288,15 +319,14 @@ export async function getRecommendedQuestions(params: RecommendedParams) {
 
     const user = await User.findOne({ clerkId: userId });
 
+    // Wenn der Webhook den User noch nicht angelegt hat: einfach nichts empfehlen
     if (!user) {
-      throw new Error("User not found");
+      return { questions: [], isNext: false };
     }
 
     const skipAmount = (page - 1) * pageSize;
 
-    const userInteractions = await Interaction.find({ user: user._id })
-      .populate("tags")
-      .exec();
+    const userInteractions = await Interaction.find({ user: user._id }).populate("tags").exec();
 
     const userTags = userInteractions.reduce((tags, interaction) => {
       if (interaction.tags) {
@@ -311,19 +341,16 @@ export async function getRecommendedQuestions(params: RecommendedParams) {
     ];
 
     const query: FilterQuery<typeof Question> = {
-      $and: [{ tags: { $in: distinctUserTagIds } },
-            { author: { $ne: user._id } },
-    ]};
+      $and: [{ tags: { $in: distinctUserTagIds } }, { author: { $ne: user._id } }],
+    };
 
     if (searchQuery) {
-      query.$or = [
-        { title: { $regex: searchQuery, $options: "i" } },
-        { content: { $regex: searchQuery, $options: "i" } },
-      ];
+      const search = new RegExp(escapeRegExp(searchQuery), "i");
+      query.$or = [{ title: { $regex: search } }, { content: { $regex: search } }];
     }
 
     const totalQuestions = await Question.countDocuments(query);
-    
+
     const recommendedQuestions = await Question.find(query)
       .populate({ path: "tags", model: Tag })
       .populate({ path: "author", model: User })
@@ -333,7 +360,6 @@ export async function getRecommendedQuestions(params: RecommendedParams) {
     const isNext = totalQuestions > skipAmount + recommendedQuestions.length;
 
     return { questions: recommendedQuestions, isNext };
-
   } catch (error) {
     console.log(error);
     throw error;
