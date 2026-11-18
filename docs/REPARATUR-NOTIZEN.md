@@ -139,7 +139,7 @@ Nebenbei gefunden: In der alten Pfadliste fehlte bei `'question/:id'` und `'tags
 ## 7. Neu dazugekommen
 
 - `.env.example` mit allen Variablen
-- `npm run seed`: Demo-Daten für die Live-Demo (`scripts/seed.mjs`). `npm run build` füllt eine **leere** Datenbank automatisch damit. Fehler dabei brechen den Build nicht ab.
+- `npm run seed`: Demo-Daten für die Live-Demo (`scripts/seed.mjs`, Inhalte in `scripts/seed-data.mjs`: 10 Personen mit Initialen-Avataren, 26 Fragen, 29 Antworten). `npm run build` legt sie bei jedem Deployment neu an, sobald `SEED_VERSION` erhöht wurde. Die aktuelle Version steht in der Collection `seedmeta`. Das Skript prüft die Daten vorher (unbekannte Personen, Antwort älter als Frage, Selbst-Votes …). Verbindungsfehler brechen den Build nicht ab.
 - `.gitignore` ignoriert jetzt alle `.env`-Dateien ausser der Vorlage
 - **TinyMCE selbst gehostet:** `npm install` kopiert den Editor nach `public/tinymce` (`scripts/copy-tinymce.mjs`). Er läuft mit `licenseKey="gpl"`, also ohne Account, API-Key und "Approved Domains".
 - **User ohne Webhook:** `getCurrentUser()` in `lib/auth.ts` legt eingeloggte Personen beim ersten Besuch selbst in MongoDB an, mit den Daten aus Clerks `currentUser()`. Der Webhook ist damit optional. Er überträgt nur noch Profiländerungen und Löschungen. `cache()` von React sorgt dafür, dass das pro Anfrage nur einmal läuft.

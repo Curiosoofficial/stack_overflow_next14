@@ -8,7 +8,7 @@
   "scripts": {
     "postinstall": "node scripts/copy-tinymce.mjs",
     "dev": "next dev",
-    "build": "node scripts/seed.mjs --if-empty && next build",
+    "build": "node scripts/seed.mjs --auto && next build",
     "start": "next start",
     "lint": "eslint .",
     "seed": "node --env-file=.env.local scripts/seed.mjs"
