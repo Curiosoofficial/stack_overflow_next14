@@ -6,13 +6,16 @@ import LocalSearch from "@/components/shared/search/LocalSearch";
 import { QuestionFilters } from "@/constants/filters";
 import { getSavedQuestions } from "@/lib/actions/user.action";
 import { SearchParamsProps } from "@/types";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 
+export default async function Collection(props: SearchParamsProps) {
+  const searchParams = await props.searchParams;
+  const { userId } = await auth();
 
-export default async function Home({ searchParams }: SearchParamsProps) {
-  const { userId } = auth();
+  // Login-Prüfung direkt auf der Seite (statt nur im Proxy)
+  if (!userId) redirect("/sign-in");
 
-  if (!userId) return null;
   const result = await getSavedQuestions({
     clerkId: userId,
     searchQuery: searchParams.q,

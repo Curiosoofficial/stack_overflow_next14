@@ -8,23 +8,30 @@ import {
 } from "@/components/ui/sheet";
 import Image from "next/image";
 import Link from "next/link";
-import { SignedOut } from "@clerk/nextjs";
+import { Show, useAuth } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { sidebarLinks } from "@/constants";
 import { usePathname } from "next/navigation";
 
 const NavContent = () => {
   const pathname = usePathname();
+  const { userId } = useAuth();
 
   return (
     <section className="flex h-full flex-col gap-6 pt-16">
       {sidebarLinks.map((item) => {
-        const isActive = (pathname.includes(item.route) && item.route.length > 1) || pathname === item.route;
+        // Profil-Link braucht die User-ID (vorher führte er auf /profile = 404)
+        const route =
+          item.route === "/profile" ? (userId ? `/profile/${userId}` : null) : item.route;
+
+        if (!route) return null;
+
+        const isActive = (pathname.includes(route) && route.length > 1) || pathname === route;
 
         return (
-          <SheetClose asChild key={item.route}>
-            <Link 
-                href={item.route}
+          <SheetClose asChild key={item.label}>
+            <Link
+                href={route}
                 className={`${isActive
                     ? 'primary-gradient rounded-lg text-light-900'
                     : 'text-dark300_light900'
@@ -83,7 +90,7 @@ const MobileNav = () => {
             <NavContent />
           </SheetClose>
 
-          <SignedOut>
+          <Show when="signed-out">
             <div className="flex flex-col gap-3">
               <SheetClose asChild>
                 <Link href="/sign-in">
@@ -101,7 +108,7 @@ const MobileNav = () => {
                 </Link>
               </SheetClose>
             </div>
-          </SignedOut>
+          </Show>
         </div>
       </SheetContent>
     </Sheet>

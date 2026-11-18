@@ -21,14 +21,14 @@ import Image from "next/image";
 import { createQuestion, editQuestion } from "@/lib/actions/question.action";
 import { useRouter, usePathname } from "next/navigation";
 import { useTheme } from "@/context/ThemeProvider";
+import { toast } from "../ui/use-toast";
 
 interface Props {
   type?: string;
-  mongoUserId: string;
   questionDetails?: string;
 }
 
-const Question = ({ type, questionDetails, mongoUserId }: Props) => {
+const Question = ({ type, questionDetails }: Props) => {
   const { mode } = useTheme();
   const editorRef = useRef(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -56,7 +56,8 @@ const Question = ({ type, questionDetails, mongoUserId }: Props) => {
     setIsSubmitting(true);
     try {
       if (type === "Edit") {
-        editQuestion({
+        // "await" fehlte: Die Seite wechselte, bevor gespeichert war, und Fehler gingen verloren
+        await editQuestion({
           questionId: parsedQuestionDetails._id,
           title: values.title,
           content: values.explanation,
@@ -65,16 +66,22 @@ const Question = ({ type, questionDetails, mongoUserId }: Props) => {
 
         router.push(`/question/${parsedQuestionDetails._id}`);
       } else {
+        // Der Autor wird auf dem Server bestimmt, nicht hier im Browser
         await createQuestion({
           title: values.title,
           content: values.explanation,
           tags: values.tags,
-          author: JSON.parse(mongoUserId),
           path: pathname,
         });
         router.push("/");
       }
-    } catch (error) {
+    } catch {
+      // Vorher wurde der Fehler still verschluckt
+      toast({
+        title: "Could not save your question",
+        description: "Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -99,7 +106,6 @@ const Question = ({ type, questionDetails, mongoUserId }: Props) => {
         }
 
         if (!field.value.includes(tagValue as never)) {
-          console.log("works");
           form.setValue("tags", [...field.value, tagValue]);
           tagInput.value = "";
           form.clearErrors("tags");
@@ -156,7 +162,9 @@ const Question = ({ type, questionDetails, mongoUserId }: Props) => {
               </FormLabel>
               <FormControl className="mt-3.5">
                 <Editor
-                  apiKey={process.env.NEXT_PUBLIC_TINY_EDITOR_API_KEY}
+                  // Selbst gehostet (public/tinymce, GPL-Lizenz): kein API-Key bei tiny.cloud nötig
+                  tinymceScriptSrc="/tinymce/tinymce.min.js"
+                  licenseKey="gpl"
                   onInit={(evt, editor) => {
                     // @ts-ignore
                     editorRef.current = editor;
@@ -196,7 +204,7 @@ const Question = ({ type, questionDetails, mongoUserId }: Props) => {
               </FormControl>
               <FormDescription className="body-regular mt-2.5 text-light-500">
                 Introduce the problem and expand on what you put in the title.
-                Minimum 20 Characters.
+                Minimum 100 characters.
               </FormDescription>
               <FormMessage className="text-red-500" />
             </FormItem>

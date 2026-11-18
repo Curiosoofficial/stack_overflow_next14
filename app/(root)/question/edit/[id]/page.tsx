@@ -1,32 +1,36 @@
-import Question from "@/components/forms/Question"
-import { getQuestionById } from "@/lib/actions/question.action"
-import { getUserById } from "@/lib/actions/user.action"
-import { ParamsProps } from "@/types"
-import { auth } from "@clerk/nextjs"
-import React from 'react'
+import Question from "@/components/forms/Question";
+import { getQuestionById } from "@/lib/actions/question.action";
+import { getCurrentUser, isSameId } from "@/lib/auth";
+import { ParamsProps } from "@/types";
+import { auth } from "@clerk/nextjs/server";
+import { notFound, redirect } from "next/navigation";
+import React from "react";
 
-const Page = async ({ params }: ParamsProps) => {
-  const { userId } = auth()
+const Page = async (props: ParamsProps) => {
+  const { id } = await props.params;
+  const { userId } = await auth();
 
-  if(!userId) return null;
+  if (!userId) redirect("/sign-in");
 
-  const mongoUser = await getUserById({ userId })
+  const mongoUser = await getCurrentUser();
+  const result = await getQuestionById({ questionId: id });
 
-  const result = await getQuestionById({ questionId: params.id })
+  if (!result) notFound();
+
+  // Nur die eigene Frage darf bearbeitet werden
+  if (!mongoUser || !isSameId(result.author._id, mongoUser._id)) {
+    redirect(`/question/${id}`);
+  }
 
   return (
     <>
       <h1 className="h1-bold text-dark100_light900">Edit Question</h1>
 
       <div className="mt-9">
-        <Question 
-          type="Edit"
-          mongoUserId={mongoUser._id}
-          questionDetails={JSON.stringify(result)}
-        />
+        <Question type="Edit" questionDetails={JSON.stringify(result)} />
       </div>
     </>
-  )
-}
+  );
+};
 
-export default Page
+export default Page;

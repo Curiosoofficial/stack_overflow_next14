@@ -1,11 +1,15 @@
-
 import LeftSidebar from '@/components/shared/LeftSidebar'
 import RightSidebar from '@/components/shared/RightSidebar'
 import Navbar from '@/components/shared/navbar/Navbar'
 import { Toaster } from "@/components/ui/toaster"
+import { getCurrentUser } from '@/lib/auth'
 import React from 'react'
 
-const Layout = ( { children }: { children: React.ReactNode}) => {
+const Layout = async ( { children }: { children: React.ReactNode}) => {
+  // Legt eingeloggte Personen beim ersten Besuch in MongoDB an (falls noch nicht da).
+  // So funktioniert die App auch ohne Clerk-Webhook.
+  await getCurrentUser()
+
   return (
     <main className="background-light850_dark100 relative">
         <Navbar />

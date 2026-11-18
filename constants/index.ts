@@ -22,11 +22,7 @@ export const sidebarLinks: SidebarLink[] = [
     route: "/collection",
     label: "Collections",
   },
-  {
-    imgURL: "/assets/icons/suitcase.svg",
-    route: "/jobs",
-    label: "Find Jobs",
-  },
+  // "Find Jobs" (/jobs) entfernt: Die Seite wurde nie gebaut, der Link führte auf eine 404.
   {
     imgURL: "/assets/icons/tag.svg",
     route: "/tags",

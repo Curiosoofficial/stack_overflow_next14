@@ -1,10 +1,11 @@
 import { getUserAnswers } from "@/lib/actions/user.action";
-import { SearchParamsProps } from "@/types";
+import { ResolvedSearchParams } from "@/types";
 import React from "react";
 import AnswerCard from "../cards/AnswerCard";
 import Pagination from "./Pagination";
 
-interface Props extends SearchParamsProps {
+interface Props {
+  searchParams: ResolvedSearchParams;
   userId: string;
   clerkId?: string | null;
 }
@@ -15,8 +16,6 @@ const AnswersTab = async ({ searchParams, userId, clerkId }: Props) => {
     page: searchParams.page ? +searchParams.page : 1,
   });
 
-  console.log(result);
-
   return (
     <>
       {result.answers.map((answer) => (
@@ -26,7 +25,8 @@ const AnswersTab = async ({ searchParams, userId, clerkId }: Props) => {
           clerkId={clerkId}
           question={answer.question}
           author={answer.author}
-          upvotes={answer.upvotes}
+          // Vorher wurde das ganze Array übergeben und als Text voller IDs angezeigt
+          upvotes={answer.upvotes.length}
           createdAt={answer.createdAt}
         />
       ))}

@@ -13,11 +13,9 @@ const GlobalResult = () => {
 
   const [isLoading, setIsLoading] = useState(false);
 
-  const [result, setResult] = useState([
-    { type: "question", id: 1, title: "How to create a new project?" },
-    { type: "tag", id: 1, title: "NextJs" },
-    { type: "user", id: 1, title: "curioso" },
-  ]);
+  // Vorher stand hier ein fest eingebauter Platzhalter (Fake-Treffer wie "curioso"),
+  // der kurz aufblitzte, bevor die echten Ergebnisse kamen.
+  const [result, setResult] = useState<{ type: string; id: string; title: string }[]>([]);
 
   const global = searchParams.get("global");
   const type = searchParams.get("type");
@@ -32,8 +30,9 @@ const GlobalResult = () => {
 
         setResult(JSON.parse(res));
       } catch (error) {
+        // Nicht weiterwerfen: ein Fehler im useEffect würde nur unbehandelt im Browser landen
         console.log(error);
-        throw error;
+        setResult([]);
       } finally {
         setIsLoading(false);
       }

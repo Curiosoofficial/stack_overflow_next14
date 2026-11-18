@@ -57,4 +57,3 @@ const Metric = ({
 
 export default Metric
 
-// 39.57

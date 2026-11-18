@@ -23,6 +23,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode}) {
     }
 
     useEffect(() => {
+      // localStorage und matchMedia gibt es nur im Browser, darum im Effect lesen.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       handleThemeChange();
     }, [mode])
     

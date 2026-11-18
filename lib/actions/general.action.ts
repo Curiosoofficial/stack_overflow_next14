@@ -6,7 +6,7 @@ import User from "@/database/user.model";
 import Question from "@/database/question.model";
 import Answer from "@/database/answer.model";
 import Tag from "@/database/tag.model";
-
+import { escapeRegExp } from "../utils";
 
 const SearchableTypes = ["question", "user", "answer", "tag"];
 
@@ -16,7 +16,9 @@ export async function globalSearch(params: SearchParams) {
 
     const { query, type } = params;
 
-    const regexQuery = { $regex: query, $options: "i" };
+    if (!query) return JSON.stringify([]);
+
+    const regexQuery = { $regex: escapeRegExp(String(query)), $options: "i" };
 
     let results = [];
 
@@ -33,29 +35,19 @@ export async function globalSearch(params: SearchParams) {
       // Search all types
 
       for (const { model, searchField, type } of modelsAndTypes) {
-        const queryResults = await model
-          .find({ [searchField]: regexQuery })
-          .limit(2);
+        const queryResults = await model.find({ [searchField]: regexQuery }).limit(2);
 
         results.push(
           ...queryResults.map((item) => ({
-            title:
-              type === "answer"
-                ? `Answers containing ${query}`
-                : item[searchField],
+            title: type === "answer" ? `Answers containing ${query}` : item[searchField],
             type,
-            id:
-              type === "user"
-                ? item.clerkId
-                : type === "answer"
-                  ? item.question
-                  : item._id,
+            id: type === "user" ? item.clerkId : type === "answer" ? item.question : item._id,
           }))
         );
       }
     } else {
       // Search specific type
-      const modelInfo = modelsAndTypes.find((item) => item.type === type);
+      const modelInfo = modelsAndTypes.find((item) => item.type === typeLower);
 
       if (!modelInfo) {
         throw new Error("Invalid type");
@@ -66,17 +58,9 @@ export async function globalSearch(params: SearchParams) {
         .limit(8);
 
       results = queryResults.map((item) => ({
-        title:
-          type === "answer"
-            ? `Answers containing ${query}`
-            : item[modelInfo.searchField],
-        type,
-        id:
-          type === "user"
-            ? item.clerkId
-            : type === "answer"
-              ? item.question
-              : item._id,
+        title: typeLower === "answer" ? `Answers containing ${query}` : item[modelInfo.searchField],
+        type: typeLower,
+        id: typeLower === "user" ? item.clerkId : typeLower === "answer" ? item.question : item._id,
       }));
     }
 

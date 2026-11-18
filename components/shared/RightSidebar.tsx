@@ -4,8 +4,12 @@ import React from "react";
 import RenderTag from "./RenderTag";
 import { getHotQuestions } from "@/lib/actions/question.action";
 import { getPopularTags } from "@/lib/actions/tag.actions";
+import { connection } from "next/server";
 
 const RightSidebar = async () => {
+  // Live-Daten aus der DB: erst zur Laufzeit laden, nicht schon beim Build (Prerendering)
+  await connection();
+
   const hotQuestions = await getHotQuestions();
   const popularTags = await getPopularTags();
 

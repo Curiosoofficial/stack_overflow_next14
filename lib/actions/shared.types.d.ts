@@ -1,12 +1,9 @@
-import { IUser } from "@/database/user.model";
-import { Schema } from "mongoose";
+// Parameter-Typen der Server Actions.
+// Wer etwas tut (Autor, Voter, ...), kommt nicht mehr aus diesen Parametern,
+// sondern wird auf dem Server über Clerk ermittelt (siehe lib/auth.ts).
 
-
-
-// collapse(1:159)
 export interface CreateAnswerParams {
   content: string;
-  author: string; // User ID
   question: string; // Question ID
   path: string;
 }
@@ -20,7 +17,6 @@ export interface GetAnswersParams {
 
 export interface AnswerVoteParams {
   answerId: string;
-  userId: string;
   hasUpvoted: boolean;
   hasDownvoted: boolean;
   path: string;
@@ -45,12 +41,6 @@ export interface RecommendedParams {
 
 export interface ViewQuestionParams {
   questionId: string;
-  userId: string | undefined;
-}
-
-export interface JobFilterParams {
-  query: string;
-  page: string;
 }
 
 export interface GetQuestionsParams {
@@ -64,7 +54,6 @@ export interface CreateQuestionParams {
   title: string;
   content: string;
   tags: string[];
-  author: Schema.Types.ObjectId | IUser;
   path: string;
 }
 
@@ -74,7 +63,6 @@ export interface GetQuestionByIdParams {
 
 export interface QuestionVoteParams {
   questionId: string;
-  userId: string;
   hasUpvoted: boolean;
   hasDownvoted: boolean;
   path: string;
@@ -111,14 +99,6 @@ export interface GetTopInteractedTagsParams {
   limit?: number;
 }
 
-export interface CreateUserParams {
-  clerkId: string;
-  name: string;
-  username: string;
-  email: string;
-  picture: string;
-}
-
 export interface GetUserByIdParams {
   userId: string;
 }
@@ -127,17 +107,21 @@ export interface GetAllUsersParams {
   page?: number;
   pageSize?: number;
   filter?: string;
-  searchQuery?: string; // Add searchQuery parameter
+  searchQuery?: string;
 }
 
-export interface UpdateUserParams {
-  clerkId: string;
-  updateData: Partial<IUser>;
+export interface UpdateProfileParams {
+  updateData: {
+    name: string;
+    username: string;
+    portfolioWebsite?: string;
+    location?: string;
+    bio?: string;
+  };
   path: string;
 }
 
 export interface ToggleSaveQuestionParams {
-  userId: string;
   questionId: string;
   path: string;
 }
@@ -154,8 +138,4 @@ export interface GetUserStatsParams {
   userId: string;
   page?: number;
   pageSize?: number;
-}
-
-export interface DeleteUserParams {
-  clerkId: string;
 }

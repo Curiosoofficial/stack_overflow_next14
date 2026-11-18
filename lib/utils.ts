@@ -8,6 +8,15 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/**
+ * Maskiert Sonderzeichen, damit Benutzereingaben sicher in einer RegExp landen.
+ * Ohne das stürzt z.B. die Suche nach "c++" ab ("Nothing to repeat"),
+ * und lange Muster könnten die Datenbank lahmlegen (ReDoS).
+ */
+export function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export const getTimeStamp = (createdAt: Date): string => {
   const currentDate: Date = new Date();
   const createdDate: Date = createdAt;

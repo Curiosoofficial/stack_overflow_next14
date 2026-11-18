@@ -2,23 +2,40 @@
 
 import Answer from "@/database/answer.model";
 import { connectToDatabase } from "../mongoose";
-import { AnswerVoteParams, CreateAnswerParams, DeleteAnswerParams, GetAnswersParams } from "./shared.types";
+import {
+  AnswerVoteParams,
+  CreateAnswerParams,
+  DeleteAnswerParams,
+  GetAnswersParams,
+} from "./shared.types";
 import { revalidatePath } from "next/cache";
 import Question from "@/database/question.model";
 import Interaction from "@/database/interaction.model";
 import User from "@/database/user.model";
-
+import { assertObjectId, isSameId, requireCurrentUser } from "../auth";
+import { AnswerSchema } from "../validation";
 
 export async function createAnswer(params: CreateAnswerParams) {
   try {
-    connectToDatabase();
+    await connectToDatabase();
 
-    // create the question
-    const { content, author, question, path } = params;
+    const { content, question, path } = params;
+    assertObjectId(question, "question id");
+    AnswerSchema.parse({ answer: content });
+
+    // Der Autor ist immer die eingeloggte Person, nie eine ID aus dem Browser.
+    const currentUser = await requireCurrentUser();
+    const author = currentUser._id;
+
+    const questionObject = await Question.findById(question);
+
+    if (!questionObject) {
+      throw new Error("Question not found");
+    }
 
     const newAnswer = await Answer.create({ content, author, question });
 
-    const questionObject = await Question.findByIdAndUpdate(question, {
+    await Question.findByIdAndUpdate(question, {
       $push: { answers: newAnswer._id },
     });
 
@@ -33,7 +50,6 @@ export async function createAnswer(params: CreateAnswerParams) {
     await User.findByIdAndUpdate(author, { $inc: { reputation: 10 } });
 
     revalidatePath(path);
-    console.log(path);
   } catch (error) {
     console.error(error);
     throw error;
@@ -42,7 +58,7 @@ export async function createAnswer(params: CreateAnswerParams) {
 
 export async function getAnswers(params: GetAnswersParams) {
   try {
-    connectToDatabase();
+    await connectToDatabase();
     const { questionId, sortBy, page = 1, pageSize = 10 } = params;
 
     const skipAmount = (page - 1) * pageSize;
@@ -51,16 +67,16 @@ export async function getAnswers(params: GetAnswersParams) {
 
     switch (sortBy) {
       case "highestUpvotes":
-        sortOptions = { upvotes: -1};
+        sortOptions = { upvotes: -1 };
         break;
       case "lowestUpvotes":
-        sortOptions = { upvotes: 1};
+        sortOptions = { upvotes: 1 };
         break;
       case "recent":
-        sortOptions = { createdAt: -1};
+        sortOptions = { createdAt: -1 };
         break;
       case "old":
-        sortOptions = { createdAt: 1};
+        sortOptions = { createdAt: 1 };
         break;
 
       default:
@@ -86,104 +102,119 @@ export async function getAnswers(params: GetAnswersParams) {
 
 export async function upvoteAnswer(params: AnswerVoteParams) {
   try {
-      connectToDatabase();
+    await connectToDatabase();
 
-      const { answerId, userId, hasUpvoted, hasDownvoted, path } = params;
+    const { answerId, hasUpvoted, hasDownvoted, path } = params;
+    assertObjectId(answerId, "answer id");
 
-      let updateQuery = {};
+    const currentUser = await requireCurrentUser();
+    const userId = currentUser._id;
 
-      if (hasUpvoted) {
-          updateQuery = { $pull: { upvotes: userId}}
-      } else if (hasDownvoted) {
-          updateQuery = {
-              $pull: { downvotes: userId},
-              $push: { upvotes: userId}
-          }
-      } else {
-          updateQuery = { $addToSet: { upvotes: userId}}
-      }
+    let updateQuery = {};
 
-      const answer = await Answer.findByIdAndUpdate(answerId, updateQuery, { new: true});
+    if (hasUpvoted) {
+      updateQuery = { $pull: { upvotes: userId } };
+    } else if (hasDownvoted) {
+      updateQuery = {
+        $pull: { downvotes: userId },
+        $push: { upvotes: userId },
+      };
+    } else {
+      updateQuery = { $addToSet: { upvotes: userId } };
+    }
 
-      if (!answer) {
-          throw new Error("Question not found")
-      }
+    const answer = await Answer.findByIdAndUpdate(answerId, updateQuery, { new: true });
 
-      await await User.findByIdAndUpdate(userId, { 
-        $inc: { reputation: hasUpvoted ? -2 : 2 } 
-      });
+    if (!answer) {
+      throw new Error("Answer not found");
+    }
 
-      await await User.findByIdAndUpdate(answer.author, { 
-        $inc: { reputation: hasUpvoted ? -10 : 10 } 
-      });
+    await User.findByIdAndUpdate(userId, {
+      $inc: { reputation: hasUpvoted ? -2 : 2 },
+    });
 
-      revalidatePath(path)
+    await User.findByIdAndUpdate(answer.author, {
+      $inc: { reputation: hasUpvoted ? -10 : 10 },
+    });
+
+    revalidatePath(path);
   } catch (error) {
-      console.log(error);
-      throw error
+    console.log(error);
+    throw error;
   }
 }
 
 export async function downvoteAnswer(params: AnswerVoteParams) {
   try {
-      connectToDatabase();
+    await connectToDatabase();
 
-      const { answerId, userId, hasUpvoted, hasDownvoted, path } = params;
+    const { answerId, hasUpvoted, hasDownvoted, path } = params;
+    assertObjectId(answerId, "answer id");
 
-      let updateQuery = {};
+    const currentUser = await requireCurrentUser();
+    const userId = currentUser._id;
 
-      if (hasDownvoted) {
-          updateQuery = { $pull: { downvotes: userId}}
-      } else if (hasUpvoted) {
-          updateQuery = {
-              $pull: { upvotes: userId},
-              $push: { downvotes: userId}
-          }
-      } else {
-          updateQuery = { $addToSet: { downvotes: userId}}
-      }
+    let updateQuery = {};
 
-      const answer = await Answer.findByIdAndUpdate(answerId, updateQuery, { new: true});
+    if (hasDownvoted) {
+      updateQuery = { $pull: { downvotes: userId } };
+    } else if (hasUpvoted) {
+      updateQuery = {
+        $pull: { upvotes: userId },
+        $push: { downvotes: userId },
+      };
+    } else {
+      updateQuery = { $addToSet: { downvotes: userId } };
+    }
 
-      if (!answer) {
-          throw new Error("Question not found")
-      }
+    const answer = await Answer.findByIdAndUpdate(answerId, updateQuery, { new: true });
 
-      await await User.findByIdAndUpdate(userId, { 
-        $inc: { reputation: hasDownvoted ? -2 : 2 } 
-      });
+    if (!answer) {
+      throw new Error("Answer not found");
+    }
 
-      await await User.findByIdAndUpdate(answer.author, { 
-        $inc: { reputation: hasDownvoted ? -10 : 10 } 
-      });
+    await User.findByIdAndUpdate(userId, {
+      $inc: { reputation: hasDownvoted ? -2 : 2 },
+    });
 
-      revalidatePath(path)
+    await User.findByIdAndUpdate(answer.author, {
+      $inc: { reputation: hasDownvoted ? -10 : 10 },
+    });
+
+    revalidatePath(path);
   } catch (error) {
-      console.log(error);
-      throw error
+    console.log(error);
+    throw error;
   }
 }
 
 export async function deleteAnswer(params: DeleteAnswerParams) {
   try {
-      connectToDatabase();
+    await connectToDatabase();
 
-      const { answerId, path } = params;
+    const { answerId, path } = params;
+    assertObjectId(answerId, "answer id");
 
-      const answer = await Answer.findById(answerId);
+    const currentUser = await requireCurrentUser();
+    const answer = await Answer.findById(answerId);
 
-      if (!answer) {
-          throw new Error("Answer not found")
-      }
+    if (!answer) {
+      throw new Error("Answer not found");
+    }
 
-      await answer.deleteOne({ _id: answerId });
-      await Question.updateMany({ _id: answer.question }, {$pull: { answers: answerId }});
-      
-      await Interaction.deleteMany({ answer: answerId });
+    // Nur die eigene Antwort darf gelöscht werden
+    if (!isSameId(answer.author, currentUser._id)) {
+      throw new Error("You can only delete your own answers.");
+    }
 
-      revalidatePath(path)
+    await answer.deleteOne();
+    await Question.updateMany({ _id: answer.question }, { $pull: { answers: answerId } });
+
+    await Interaction.deleteMany({ answer: answerId });
+
+    revalidatePath(path);
   } catch (error) {
-      console.log(error);
-      throw error;
+    console.log(error);
+    throw error;
   }
 }
