@@ -40,7 +40,7 @@ Der Kurs-Stand von 2024 (Next.js 14, Clerk v4) lief nicht mehr zuverlässig und 
 - Benutzer-HTML wird vor dem Anzeigen gefiltert (Schutz vor XSS), Suchbegriffe werden für reguläre Ausdrücke maskiert
 - Abstürze behoben, z.B. Fragen-Detailseite für nicht eingeloggte Besucher, Suche nach `c++`, ungültige IDs in der URL
 - Platzhalter aus dem Kurs ersetzt (fest eingebaute Tags und Suchtreffer, toter "Find Jobs"-Link, KI-Knopf mit `alert`)
-- Einfacheres Setup: TinyMCE ist selbst gehostet (kein API-Key), neue Accounts werden auch ohne Clerk-Webhook angelegt, und eine leere Datenbank wird beim Build mit Demo-Daten gefüllt
+- Einfacheres Setup: TinyMCE ist selbst gehostet (kein API-Key), neue Accounts werden auch ohne Clerk-Webhook angelegt, und die Demo-Daten werden beim Build automatisch angelegt
 
 Die Details mit Ursache und Lösung stehen in [docs/REPARATUR-NOTIZEN.md](docs/REPARATUR-NOTIZEN.md).
 
@@ -54,13 +54,13 @@ cp .env.example .env.local   # danach die Werte in .env.local eintragen
 npm run dev                  # http://localhost:3000
 ```
 
-Demo-Daten (4 Demo-Personen, 6 Fragen, 4 Antworten) in die Datenbank schreiben:
+Demo-Daten (10 Demo-Personen, 26 Fragen, 29 Antworten) in die Datenbank schreiben:
 
 ```bash
 npm run seed
 ```
 
-Das Skript löscht nur seine eigenen alten Demo-Daten und kann beliebig oft laufen. `npm run build` ruft es automatisch auf, aber nur, wenn die Datenbank noch leer ist.
+Die Inhalte stehen in `scripts/seed-data.mjs`. Das Skript löscht nur seine eigenen alten Demo-Daten und kann beliebig oft laufen. `npm run build` ruft es automatisch auf, legt die Daten aber nur neu an, wenn `SEED_VERSION` in `seed-data.mjs` erhöht wurde.
 
 Weitere Befehle: `npm run build` (Produktions-Build), `npm run lint` (ESLint).
 
@@ -81,7 +81,7 @@ Alle Namen stehen mit Erklärung in [.env.example](.env.example).
 
 1. Repository in Vercel importieren (Framework wird automatisch erkannt).
 2. Im Projekt unter *Storage* bzw. *Integrations* aus dem Marketplace **MongoDB Atlas** und **Clerk** hinzufügen (Gratis-Pläne) und mit dem Projekt verbinden. Die Keys landen dabei automatisch in den Environment Variables.
-3. Neu deployen. Beim Build wird die leere Datenbank mit Demo-Daten gefüllt.
+3. Neu deployen. Beim Build werden die Demo-Daten angelegt.
 4. Optional: In Clerk unter *Webhooks* einen Endpoint `https://<deine-domain>/api/webhook` mit `user.created`, `user.updated` und `user.deleted` anlegen und das Signing Secret als `CLERK_WEBHOOK_SIGNING_SECRET` eintragen.
 
 Der Editor TinyMCE ist selbst gehostet (`public/tinymce`, GPL-Lizenz mit `licenseKey="gpl"`) und braucht weder Account noch API-Key.
